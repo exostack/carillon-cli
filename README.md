@@ -24,6 +24,17 @@ carillon use        # pick the organization and app the other commands work in
 carillon whoami
 ```
 
+`carillon login` signs in through the browser: it prints a short code and a
+dashboard URL, opens the browser on it when it can, and waits while you
+approve the sign-in there. No password ever crosses the terminal — and the
+browser can be on a different machine, as long as it can reach the dashboard.
+
+For scripts and CI there is the password flow, chosen by giving either flag:
+
+```sh
+carillon login --email you@company.com --password "$CARILLON_PASSWORD"
+```
+
 There is no self-registration, on purpose: Carillon accounts come from a
 dashboard invitation, or are the first owner of a fresh installation. When
 `carillon login` refuses you, ask an organization owner to invite you from the
@@ -35,7 +46,7 @@ alone. `carillon logout` revokes the session and deletes it.
 ## Commands
 
 ```
-carillon login                        sign in with email and password
+carillon login                        sign in through the browser (--email/--password for scripts)
 carillon logout                       sign out and forget the stored token
 carillon whoami                       who is signed in, and the current context
 
