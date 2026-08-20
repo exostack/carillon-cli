@@ -51,6 +51,28 @@ export function writeConfig(config: CliConfig): void {
   writeFileSync(join(configDir(), 'config.json'), JSON.stringify(config, null, 2) + '\n')
 }
 
+export interface ContextEntry {
+  readonly id: string
+  readonly name: string
+}
+
+/**
+ * Replaces the working context (organization, and app when one is picked)
+ * while keeping the configured hosts. An omitted app clears the stored one:
+ * an app from the previous organization would be worse than none.
+ */
+export function writeContext(organization: ContextEntry, app?: ContextEntry): void {
+  const previous = readConfig()
+
+  writeConfig({
+    ...(previous.api_url === undefined ? {} : { api_url: previous.api_url }),
+    ...(previous.auth_url === undefined ? {} : { auth_url: previous.auth_url }),
+    organization_id: organization.id,
+    organization_name: organization.name,
+    ...(app === undefined ? {} : { app_id: app.id, app_name: app.name }),
+  })
+}
+
 export function apiUrl(): string {
   const chosen = process.env['CARILLON_API_URL'] ?? readConfig().api_url ?? DEFAULT_API_URL
 

@@ -4,13 +4,7 @@ import pc from 'picocolors'
 import { authCall, type Organization } from '../client.js'
 import { requireOrganization } from '../context.js'
 import { fail, printJson, table } from '../output.js'
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
+import { slugify } from '../slug.js'
 
 export const org = new Command('org').description('Organizations')
 

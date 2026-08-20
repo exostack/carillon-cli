@@ -24,3 +24,15 @@ export function apiErrorMessage(status: number, body: unknown): string {
 }
 
 export const NOT_SIGNED_IN = 'Not signed in, or the session has expired. Run `carillon login`.'
+
+/**
+ * Thrown when the API answers 401: the stored token is missing, expired or
+ * revoked. Typed so a caller can tell "sign in again" apart from "that
+ * request was wrong" without matching on a sentence.
+ */
+export class NotSignedInError extends Error {
+  constructor() {
+    super(NOT_SIGNED_IN)
+    this.name = 'NotSignedInError'
+  }
+}

@@ -3,6 +3,7 @@ import { createRequire } from 'node:module'
 import { Command } from 'commander'
 
 import { app } from './commands/app.js'
+import { audience } from './commands/audience.js'
 import { credential } from './commands/credential.js'
 import { key } from './commands/key.js'
 import { login } from './commands/login.js'
@@ -18,7 +19,7 @@ const program = new Command('carillon')
   .description('The Carillon command line — push notifications, from a terminal.')
   .version(version)
 
-for (const command of [login, logout, whoami, org, use, app, credential, key]) {
+for (const command of [login, logout, whoami, org, use, app, credential, key, audience]) {
   program.addCommand(command)
 }
 

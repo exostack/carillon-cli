@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { basename } from 'node:path'
 
 import { intro, outro, select, text } from '@clack/prompts'
 import { Command } from 'commander'
@@ -7,6 +6,7 @@ import pc from 'picocolors'
 
 import { api, unwrap } from '../client.js'
 import { requireApp } from '../context.js'
+import { apnsKeyIdFromFilename, parseFcmServiceAccount } from '../credential-material.js'
 import { answered, fail, printJson, table } from '../output.js'
 
 export const credential = new Command('credential').description(
@@ -111,9 +111,7 @@ async function apnsUpload(options: UploadOptions) {
       }),
     )
   const contents = material(file)
-
-  // Apple names the download after the key, so the id is usually already in hand.
-  const fromFilename = /^AuthKey_([A-Z0-9]+)\.p8$/.exec(basename(file))?.[1]
+  const fromFilename = apnsKeyIdFromFilename(file)
 
   const keyId =
     options.keyId ??
@@ -167,18 +165,13 @@ async function fcmUpload(options: UploadOptions) {
       }),
     )
   const contents = material(file)
+  const parsed = parseFcmServiceAccount(contents)
 
-  let projectId: unknown
-
-  try {
-    projectId = (JSON.parse(contents) as Record<string, unknown>)['project_id']
-  } catch {
+  if (parsed.kind === 'not-json')
     fail(`${file} is not JSON — expected a Firebase service account file.`)
-  }
-
-  if (typeof projectId !== 'string' || projectId.length === 0) {
+  if (parsed.kind === 'no-project-id') {
     fail(`${file} carries no project_id — expected a Firebase service account file.`)
   }
 
-  return { provider: 'fcm' as const, key_id: projectId, material: contents }
+  return { provider: 'fcm' as const, key_id: parsed.projectId, material: contents }
 }

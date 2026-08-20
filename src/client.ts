@@ -4,9 +4,8 @@ import { request as secureRequest } from 'node:https'
 import createClient from 'openapi-fetch'
 
 import { apiUrl, authUrl, readToken } from './config.js'
-import { apiErrorMessage, NOT_SIGNED_IN } from './errors.js'
+import { apiErrorMessage, NotSignedInError } from './errors.js'
 import type { paths } from './generated/api.js'
-import { fail } from './output.js'
 
 function bearer(): Record<string, string> {
   const token = readToken()
@@ -24,18 +23,18 @@ interface FetchResult<T> {
   response: Response
 }
 
-/** Resolves the data or exits with the API's own sentence — never both. */
+/** Resolves the data or throws with the API's own sentence — never both. */
 export async function unwrap<T>(request: Promise<FetchResult<T>>): Promise<T> {
   let result: FetchResult<T>
 
   try {
     result = await request
   } catch (cause) {
-    fail(unreachable(cause, apiUrl()))
+    throw new Error(unreachable(cause, apiUrl()), { cause })
   }
 
-  if (result.response.status === 401) fail(NOT_SIGNED_IN)
-  if (!result.response.ok) fail(apiErrorMessage(result.response.status, result.error))
+  if (result.response.status === 401) throw new NotSignedInError()
+  if (!result.response.ok) throw new Error(apiErrorMessage(result.response.status, result.error))
 
   return result.data as T
 }
@@ -63,7 +62,7 @@ export async function authRequest<T>(
   const transport = target.protocol === 'https:' ? secureRequest : insecureRequest
   const payload = init?.body === undefined ? null : JSON.stringify(init.body)
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const request = transport(
       target,
       {
@@ -105,7 +104,7 @@ export async function authRequest<T>(
       },
     )
 
-    request.on('error', (cause) => fail(unreachable(cause, authUrl())))
+    request.on('error', (cause) => reject(new Error(unreachable(cause, authUrl()), { cause })))
 
     if (payload !== null) request.write(payload)
     request.end()
@@ -119,8 +118,8 @@ export async function authCall<T>(
 ): Promise<T | null> {
   const { body, response } = await authRequest<T>(path, init)
 
-  if (response.status === 401) fail(NOT_SIGNED_IN)
-  if (!response.ok) fail(apiErrorMessage(response.status, body))
+  if (response.status === 401) throw new NotSignedInError()
+  if (!response.ok) throw new Error(apiErrorMessage(response.status, body))
 
   return body
 }

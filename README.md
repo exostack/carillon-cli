@@ -65,6 +65,11 @@ carillon credential upload            APNs .p8 or FCM service account JSON, guid
 carillon key list
 carillon key create [--type secret|mobile] [--mode live|test] [--name <label>]
 carillon key revoke <id>
+
+carillon audience list                audiences is accepted as an alias
+carillon audience create              pick the filters one at a time, counting as you go
+carillon audience preview [--json '<definition>']
+carillon audience delete <name-or-id> [--yes]
 ```
 
 Every command prompts for what it was not given, and takes flags for scripts.
@@ -81,6 +86,36 @@ the product's, not the tool's. A **secret key** is printed once, at creation,
 and never again — copy it then. A **credential's material** (the `.p8`, the
 service account JSON) is read from the file you name, sealed on arrival, and
 never returned or echoed; what you see back is its fingerprint.
+
+## Audiences
+
+An audience is a set of filters saved under a name, so a campaign can say who
+it is for in one word. The filters narrow together — a device belongs when it
+matches every one of them — and an audience with no filters is the whole
+reachable park of the app.
+
+`carillon audience create` asks for a name, then builds the definition one
+filter at a time, counting the devices it reaches after every change. That
+count is the point of the loop: a filter can only ever shrink an audience, so
+watching the number is how you know the filter did what you meant.
+
+The ten fields a filter is about: `platform`, `push_permission`, `source`,
+`locale`, `timezone_id`, `app_version`, `app_build`, `os_version`,
+`last_active` (seen within so many days) and `tag` (a key and a value). A
+`last_active` filter is answered when the audience resolves, not when it was
+saved — a campaign sent next month asks the question again.
+
+`carillon audience preview` answers the same question without saving
+anything, and takes a definition whole for scripts:
+
+```sh
+carillon audience preview --json '{"filters":[{"field":"platform","value":"ios"},{"field":"last_active","within_days":30}]}'
+```
+
+Sending to a saved audience is the API's business, not the CLI's: pass its id
+as `"audience": { "audience_id": "<id>" }` to `POST /v1/messages`. The filters
+are copied onto the campaign as it is written, so deleting an audience never
+changes who a campaign already accepted goes to.
 
 ## Pointing it elsewhere
 

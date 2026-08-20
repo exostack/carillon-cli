@@ -3,7 +3,7 @@ import { Command } from 'commander'
 import pc from 'picocolors'
 
 import { api, authCall, type Organization, unwrap } from '../client.js'
-import { readConfig, writeConfig } from '../config.js'
+import { writeContext } from '../config.js'
 import { answered } from '../output.js'
 
 export const use = new Command('use')
@@ -49,15 +49,8 @@ export const use = new Command('use')
       }),
     )
 
-    const previous = readConfig()
-
     if (apps.length === 0) {
-      writeConfig({
-        ...(previous.api_url === undefined ? {} : { api_url: previous.api_url }),
-        ...(previous.auth_url === undefined ? {} : { auth_url: previous.auth_url }),
-        organization_id: organization.id,
-        organization_name: organization.name,
-      })
+      writeContext(organization)
       outro(`Using ${organization.name}. No apps yet — create one with \`carillon app create\`.`)
 
       return
@@ -78,14 +71,7 @@ export const use = new Command('use')
 
     if (apps.length === 1) log.info(`App: ${app.name}`)
 
-    writeConfig({
-      ...(previous.api_url === undefined ? {} : { api_url: previous.api_url }),
-      ...(previous.auth_url === undefined ? {} : { auth_url: previous.auth_url }),
-      organization_id: organization.id,
-      organization_name: organization.name,
-      app_id: app.id,
-      app_name: app.name,
-    })
+    writeContext(organization, app)
 
     outro(`Using ${pc.bold(organization.name)} / ${pc.bold(app.name)}.`)
   })
