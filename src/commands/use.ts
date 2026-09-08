@@ -7,7 +7,7 @@ import { writeContext } from '../config.js'
 import { answered } from '../output.js'
 
 export const use = new Command('use')
-  .description('Pick the organization and app the other commands work in')
+  .description('Select the organization and app for subsequent commands')
   .action(async () => {
     intro(pc.bold('carillon use'))
 
@@ -20,7 +20,7 @@ export const use = new Command('use')
     loading.stop(`${organizations.length} organization(s)`)
 
     if (organizations.length === 0) {
-      outro('This account belongs to no organization. Create one with `carillon org create`.')
+      outro('No organizations. Create one with `carillon org create <name>`.')
       process.exit(1)
     }
 
@@ -51,7 +51,9 @@ export const use = new Command('use')
 
     if (apps.length === 0) {
       writeContext(organization)
-      outro(`Using ${organization.name}. No apps yet — create one with \`carillon app create\`.`)
+      outro(
+        `Using ${organization.name}. No apps yet — create one with \`carillon app create <name>\`.`,
+      )
 
       return
     }

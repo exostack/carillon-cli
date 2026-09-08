@@ -43,7 +43,7 @@ key
   .description('Create a key')
   .option('--type <type>', 'secret or mobile')
   .option('--mode <mode>', 'live or test', 'live')
-  .option('--name <label>', 'a label, so two keys of the same kind can be told apart')
+  .option('--name <label>', 'optional key label')
   .action(async (options: { type?: string; mode: string; name?: string }) => {
     const app = requireApp()
 
@@ -61,15 +61,15 @@ key
             {
               value: 'mobile',
               label: 'Mobile',
-              hint: 'ships inside the app binary — registers its own device only',
+              hint: 'registers and updates devices; reports notification opens',
             },
           ],
         }),
       )
 
-    if (type !== 'secret' && type !== 'mobile') fail('The type is either `secret` or `mobile`.')
+    if (type !== 'secret' && type !== 'mobile') fail('Use --type secret or --type mobile.')
     if (options.mode !== 'live' && options.mode !== 'test') {
-      fail('The mode is either `live` or `test`.')
+      fail('Use --mode live or --mode test.')
     }
 
     const label =
@@ -96,12 +96,12 @@ key
 
     if (created.type === 'secret') {
       console.log('')
-      console.log(pc.bold(pc.yellow('Copy this key now. It is shown once and never again.')))
+      console.log(pc.bold(pc.yellow('Copy this secret key now. It cannot be retrieved later.')))
       console.log('')
       console.log(`  ${pc.bold(created.secret)}`)
       console.log('')
-      console.log('Store it where your server reads secrets from. Losing it means revoking')
-      console.log('this key and creating another.')
+      console.log('Store it in your server secret storage. If lost, revoke this key')
+      console.log('and create another.')
 
       return
     }
@@ -127,6 +127,6 @@ key
 
     console.log(
       `Revoked ${revoked.type} key ${revoked.prefix}… (${revoked.id}). ` +
-        'Requests presenting it are refused from now on.',
+        'Requests using this key will be rejected.',
     )
   })

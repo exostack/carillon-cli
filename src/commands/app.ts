@@ -43,6 +43,7 @@ app
     )
 
     console.log(`Created ${pc.bold(created.name)} (${created.id}).`)
-    console.log(`It already holds a live mobile key — see \`carillon key list\`.`)
-    console.log(`Next: ${pc.cyan('carillon use')} to make it the current app.`)
+    console.log(
+      `A live mobile key was created. Select this app with \`carillon use\`, then run \`carillon key list\`.`,
+    )
   })

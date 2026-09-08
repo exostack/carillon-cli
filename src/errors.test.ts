@@ -28,7 +28,9 @@ describe('apiErrorMessage', () => {
   })
 
   it('says something plain for a body that says nothing', () => {
-    expect(apiErrorMessage(500, null)).toBe('The API answered HTTP 500 with nothing more to say.')
+    expect(apiErrorMessage(500, null)).toBe(
+      'Request failed (HTTP 500). The API returned no error details.',
+    )
     expect(apiErrorMessage(503, { detail: 42 })).toContain('503')
   })
 })

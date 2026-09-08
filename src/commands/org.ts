@@ -32,14 +32,15 @@ org
   .action(async (name: string) => {
     const slug = slugify(name)
 
-    if (slug.length === 0) fail('That name leaves nothing to build a slug from.')
+    if (slug.length === 0) fail('Enter a name containing letters or numbers.')
 
     const created = await authCall<Organization>('/organization/create', {
       method: 'POST',
       body: { name, slug },
     })
 
-    if (created === null) fail('The server created nothing and said nothing.')
+    if (created === null)
+      fail('No organization returned. Run `carillon org list` to check whether it was created.')
 
     console.log(`Created ${pc.bold(created.name)} (${created.id}).`)
     console.log(`Next: ${pc.cyan('carillon use')} to work in it.`)
@@ -51,7 +52,7 @@ org
   .option('--role <role>', 'admin or member', 'member')
   .action(async (email: string, options: { role: string }) => {
     if (!['admin', 'member'].includes(options.role)) {
-      fail('The role is either `admin` or `member`.')
+      fail('Use --role admin or --role member.')
     }
 
     const organization = requireOrganization()

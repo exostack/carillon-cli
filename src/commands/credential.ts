@@ -73,7 +73,7 @@ credential
         }),
       )
 
-    if (provider !== 'apns' && provider !== 'fcm') fail('The provider is either `apns` or `fcm`.')
+    if (provider !== 'apns' && provider !== 'fcm') fail('Use --provider apns or --provider fcm.')
 
     const body = provider === 'apns' ? await apnsUpload(options) : await fcmUpload(options)
 
@@ -107,7 +107,8 @@ async function apnsUpload(options: UploadOptions) {
       await text({
         message: 'Path to the .p8 key',
         placeholder: './AuthKey_ABC123DEFG.p8',
-        validate: (value) => (value !== undefined && value.length > 0 ? undefined : 'A path.'),
+        validate: (value) =>
+          value !== undefined && value.length > 0 ? undefined : 'Enter a file path.',
       }),
     )
   const contents = material(file)
@@ -120,7 +121,9 @@ async function apnsUpload(options: UploadOptions) {
         message: 'Key ID',
         ...(fromFilename === undefined ? {} : { initialValue: fromFilename }),
         validate: (value) =>
-          value !== undefined && value.length > 0 ? undefined : 'The 10-character Key ID.',
+          value !== undefined && value.length > 0
+            ? undefined
+            : 'Enter the 10-character APNs Key ID.',
       }),
     )
   const teamId =
@@ -129,7 +132,7 @@ async function apnsUpload(options: UploadOptions) {
       await text({
         message: 'Team ID',
         validate: (value) =>
-          value !== undefined && value.length > 0 ? undefined : 'The Apple team identifier.',
+          value !== undefined && value.length > 0 ? undefined : 'Enter your Apple Team ID.',
       }),
     )
   const bundleId =
@@ -139,9 +142,7 @@ async function apnsUpload(options: UploadOptions) {
         message: 'Bundle ID',
         placeholder: 'com.example.app',
         validate: (value) =>
-          value !== undefined && value.length > 0
-            ? undefined
-            : 'The app identifier APNs routes by.',
+          value !== undefined && value.length > 0 ? undefined : 'Enter the app bundle identifier.',
       }),
     )
 
@@ -161,7 +162,8 @@ async function fcmUpload(options: UploadOptions) {
       await text({
         message: 'Path to the service account JSON',
         placeholder: './service-account.json',
-        validate: (value) => (value !== undefined && value.length > 0 ? undefined : 'A path.'),
+        validate: (value) =>
+          value !== undefined && value.length > 0 ? undefined : 'Enter a file path.',
       }),
     )
   const contents = material(file)
@@ -170,7 +172,7 @@ async function fcmUpload(options: UploadOptions) {
   if (parsed.kind === 'not-json')
     fail(`${file} is not JSON — expected a Firebase service account file.`)
   if (parsed.kind === 'no-project-id') {
-    fail(`${file} carries no project_id — expected a Firebase service account file.`)
+    fail(`${file} has no project_id. Select a Firebase service account JSON file.`)
   }
 
   return { provider: 'fcm' as const, key_id: parsed.projectId, material: contents }

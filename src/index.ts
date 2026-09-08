@@ -16,7 +16,7 @@ import { fail } from './output.js'
 const { version } = createRequire(import.meta.url)('../package.json') as { version: string }
 
 const program = new Command('carillon')
-  .description('The Carillon command line — push notifications, from a terminal.')
+  .description('Manage Carillon organizations, apps, credentials, keys, and audiences.')
   .version(version)
 
 for (const command of [login, logout, whoami, org, use, app, credential, key, audience]) {

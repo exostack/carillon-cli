@@ -15,12 +15,12 @@ export function apiErrorMessage(status: number, body: unknown): string {
   }
 
   if (status === 401) return NOT_SIGNED_IN
-  if (status === 403) return 'This account is not allowed to do that.'
+  if (status === 403) return 'Access denied. Check your organization role with an administrator.'
   if (status === 404) {
     return 'Not found. Check the identifier, and that `carillon use` points at the right organization and app.'
   }
 
-  return `The API answered HTTP ${status} with nothing more to say.`
+  return `Request failed (HTTP ${status}). The API returned no error details.`
 }
 
 export const NOT_SIGNED_IN = 'Not signed in, or the session has expired. Run `carillon login`.'

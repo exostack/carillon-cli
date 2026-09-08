@@ -36,7 +36,7 @@ export const FIELDS: readonly FieldSpec[] = [
   {
     field: 'push_permission',
     label: 'Push permission',
-    hint: 'what the device answered to the system prompt',
+    hint: 'current OS notification permission reported by the device',
     prompt: {
       kind: 'choice',
       choices: [
@@ -92,13 +92,13 @@ export const FIELDS: readonly FieldSpec[] = [
   {
     field: 'last_active',
     label: 'Last active',
-    hint: 'seen within so many days, counted when the audience resolves',
+    hint: 'days since last activity, evaluated at send time',
     prompt: { kind: 'days' },
   },
   {
     field: 'tag',
     label: 'Tag',
-    hint: 'a key and a value the device carries',
+    hint: 'device tag key and value',
     prompt: { kind: 'tag' },
   },
 ]
@@ -160,7 +160,7 @@ export function parseDefinition(source: string): ParsedDefinition {
   try {
     parsed = JSON.parse(source)
   } catch {
-    return { kind: 'error', reason: 'That is not JSON. A definition looks like {"filters": []}.' }
+    return { kind: 'error', reason: 'Invalid JSON. Use an object such as {"filters": []}.' }
   }
 
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
@@ -172,7 +172,7 @@ export function parseDefinition(source: string): ParsedDefinition {
   if (!Array.isArray(filters)) {
     return {
       kind: 'error',
-      reason: 'A definition carries a `filters` array — an empty one reaches everyone.',
+      reason: 'Include a `filters` array. An empty array matches all eligible devices.',
     }
   }
 

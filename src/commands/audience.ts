@@ -49,7 +49,7 @@ audience
 
 audience
   .command('create')
-  .description('Save an audience, built filter by filter')
+  .description('Create an audience using device filters')
   .action(async () => {
     const app = requireApp()
 
@@ -60,7 +60,9 @@ audience
         message: 'Name',
         placeholder: 'Lapsed iOS',
         validate: (value) =>
-          value !== undefined && value.trim().length > 0 ? undefined : 'A name, unique in the app.',
+          value !== undefined && value.trim().length > 0
+            ? undefined
+            : 'Enter an audience name unique within this app.',
       }),
     ).trim()
 
@@ -92,14 +94,14 @@ audience
     }
 
     outro(
-      `Saved ${pc.bold(created.name)}. Campaigns reach it with ` +
+      `Saved ${pc.bold(created.name)}. Send to it with ` +
         `${pc.cyan(`"audience": { "audience_id": "${created.id}" }`)}.`,
     )
   })
 
 audience
   .command('preview')
-  .description('Count the devices a definition would reach, without saving anything')
+  .description('Preview the matching-device count without saving')
   .option('--json <definition>', 'the definition, as JSON — skips the builder')
   .action(async (options: { json?: string }) => {
     const app = requireApp()
@@ -122,8 +124,8 @@ audience
 
 audience
   .command('delete <name-or-id>')
-  .description('Delete a saved audience, by name or by id')
-  .option('--yes', 'delete without asking')
+  .description('Delete an audience by name or id')
+  .option('--yes', 'skip confirmation')
   .action(async (nameOrId: string, options: { yes?: boolean }) => {
     const app = requireApp()
     const { data } = await unwrap(
@@ -132,7 +134,7 @@ audience
     const audience = resolveAudience(data, nameOrId)
 
     if (audience === undefined) {
-      fail(`No audience called ${nameOrId} in ${app.name}. \`carillon audience list\` has them.`)
+      fail(`Audience ${nameOrId} not found in ${app.name}. Run \`carillon audience list\`.`)
     }
 
     if (options.yes !== true) {
@@ -154,10 +156,7 @@ audience
       }),
     )
 
-    console.log(
-      `Deleted ${audience.name}. Campaigns already sent to it are untouched: each one ` +
-        'carries its own copy of the filters it was written against.',
-    )
+    console.log(`Deleted ${audience.name}. Existing campaigns retain their saved filters.`)
   })
 
 async function preview(appId: string, definition: AudienceDefinition) {
@@ -246,7 +245,7 @@ async function askFilter(): Promise<AudienceFilter> {
           message: spec.label,
           placeholder: spec.prompt.placeholder,
           validate: (value) =>
-            value !== undefined && value.trim().length > 0 ? undefined : 'A value to match.',
+            value !== undefined && value.trim().length > 0 ? undefined : 'Enter a value to match.',
         }),
       ).trim()
 
@@ -255,12 +254,12 @@ async function askFilter(): Promise<AudienceFilter> {
     case 'days': {
       const answer = answered(
         await text({
-          message: 'Seen within how many days',
+          message: 'Active within how many days?',
           placeholder: '30',
           validate: (value) =>
             value !== undefined && withinDays(value) !== undefined
               ? undefined
-              : 'A whole number of days, 1 to 365.',
+              : 'Enter a whole number from 1 to 365.',
         }),
       )
 
@@ -272,7 +271,7 @@ async function askFilter(): Promise<AudienceFilter> {
           message: 'Tag key',
           placeholder: 'plan',
           validate: (value) =>
-            value !== undefined && value.trim().length > 0 ? undefined : 'The key of the tag.',
+            value !== undefined && value.trim().length > 0 ? undefined : 'Enter a tag key.',
         }),
       ).trim()
       const value = answered(
@@ -280,7 +279,7 @@ async function askFilter(): Promise<AudienceFilter> {
           message: 'Tag value',
           placeholder: 'pro',
           validate: (value) =>
-            value !== undefined && value.trim().length > 0 ? undefined : 'The value it carries.',
+            value !== undefined && value.trim().length > 0 ? undefined : 'Enter a tag value.',
         }),
       ).trim()
 

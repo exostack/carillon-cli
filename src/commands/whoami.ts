@@ -6,7 +6,7 @@ import { NOT_SIGNED_IN } from '../errors.js'
 import { fail, printJson, table } from '../output.js'
 
 export const whoami = new Command('whoami')
-  .description('Show who is signed in, and the current context')
+  .description('Show the signed-in account, organization, and app')
   .option('--json', 'machine-readable output')
   .action(async (options: { json?: boolean }) => {
     const session = await authCall<Session>('/get-session')

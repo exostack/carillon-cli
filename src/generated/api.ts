@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * Liveness probe
-         * @description Answers on both surfaces without authentication. Reporting the surface makes a misrouted deployment visible immediately rather than after the first failing request.
+         * @description Unauthenticated health check available on both API surfaces.
          */
         get: operations["health"];
         put?: never;
@@ -121,7 +121,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Count the devices a definition would reach */
+        /** Preview an audience */
         post: operations["previewAudience"];
         delete?: never;
         options?: never;
@@ -190,7 +190,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Report what happened to notifications on a device */
+        /** Report notification opens */
         post: operations["reportEvents"];
         delete?: never;
         options?: never;
@@ -205,7 +205,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** How an import went */
+        /** Get an import */
         get: operations["getDeviceImport"];
         put?: never;
         post?: never;
@@ -242,8 +242,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Cancel a campaign that has not finished going out
-         * @description Stops what has not been handed to Apple or Google yet. Notifications already accepted are not cancelable by anyone, ourselves included, and the response counts them rather than pretending otherwise.
+         * Cancel a campaign
+         * @description Cancel queued deliveries and pending waves. Deliveries already in flight cannot be cancelled.
          */
         post: operations["cancelMessage"];
         delete?: never;
@@ -262,8 +262,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Send a notification to named devices
-         * @description Send `Idempotency-Key` on every call: a network timeout tells you nothing about whether the notification went out, and retrying under the same key is the only way to find out without risking a second one. Send `dedup_key` when a notification must never go out twice however often you ask. They are different problems and both are optional.
+         * Send or schedule a notification
+         * @description Create a campaign for device_ids, all devices, or a saved audience. Sending runs asynchronously. Use Idempotency-Key for retries and dedup_key to reject duplicate business notifications for 30 days.
          */
         post: operations["sendMessage"];
         delete?: never;
@@ -283,7 +283,7 @@ export interface paths {
         put?: never;
         /**
          * Import devices from a CSV
-         * @description Answers before reading the file. Tokens are imported exactly as given and never checked against a provider: the feedback loop strikes off the dead ones on the first campaign, which is its job. A token this app already has is left alone: the row the SDK wrote is newer and richer, so the CSV line is ignored, and re-running the same file therefore creates nothing.
+         * @description Store a CSV for asynchronous processing. Tokens are not validated with APNs or FCM during import. Existing tokens in this app are skipped without updating their data.
          */
         post: operations["importDevices"];
         delete?: never;
@@ -340,7 +340,7 @@ export interface components {
             status: "ok";
             /** @enum {string} */
             surface: "public" | "internal";
-            /** @description The commit this process was built from, or null where nothing set it. A deployment whose new revision fails to start leaves the platform serving the previous one with every health check green; this is what makes that visible instead of silent. */
+            /** @description Build commit SHA. Null if not configured. */
             revision: string | null;
         };
         App: {
@@ -365,10 +365,10 @@ export interface components {
             type: "secret" | "mobile";
             /** @enum {string} */
             mode: "live" | "test";
-            /** @description Enough to tell two keys apart at a glance. */
+            /** @description Key prefix for identification. */
             prefix: string;
             label: string | null;
-            /** @description The key itself. Returned every time for a mobile key, which is public by construction; returned only at creation for a secret key, which cannot be recovered afterwards. */
+            /** @description Full key value. Mobile keys are returned on every read; secret keys only at creation. */
             secret: string | null;
             /** Format: date-time */
             revoked_at: string | null;
@@ -380,7 +380,7 @@ export interface components {
             type: "secret" | "mobile";
             /** @enum {string} */
             mode: "live" | "test";
-            /** @description So two keys of the same kind can be told apart. */
+            /** @description Optional key label. */
             label?: string | null;
         };
         Problem: {
@@ -405,10 +405,10 @@ export interface components {
             created_at: string;
         };
         SavedAudienceDefinition: {
-            /** @description Applied together: a device belongs to the audience when it matches every one of them. An empty list means the whole reachable park of the app. */
+            /** @description All filters must match. An empty list matches all eligible devices in the app. */
             filters: components["schemas"]["SavedAudienceFilter"][];
         };
-        /** @description One condition, named by the device attribute it is about. Every filter narrows, so adding one can only ever shrink what the audience reaches. */
+        /** @description Condition on a device attribute. All filters must match. */
         SavedAudienceFilter: {
             /** @enum {string} */
             field: "platform";
@@ -439,7 +439,7 @@ export interface components {
             /** @enum {string} */
             field: "timezone_id";
             /**
-             * @description An IANA identifier, never an offset: an offset is wrong twice a year.
+             * @description IANA timezone identifier, such as Europe/Paris.
              * @example Europe/Paris
              */
             value: string;
@@ -462,7 +462,7 @@ export interface components {
             /** @enum {string} */
             field: "last_active";
             /**
-             * @description Devices seen within this many days of the moment the audience is resolved, not of the moment it was saved. A campaign sent next month asks the question again.
+             * @description Number of days since last activity, evaluated when the audience is resolved.
              * @example 30
              */
             within_days: number;
@@ -476,14 +476,14 @@ export interface components {
         };
         SavedAudienceCreation: {
             /**
-             * @description Unique within the app, so a person can name one out loud.
+             * @description Audience name, unique within the app.
              * @example Lapsed iOS
              */
             name: string;
             definition: components["schemas"]["SavedAudienceDefinition"];
         };
         SavedAudiencePreview: {
-            /** @description Devices this definition would reach right now: matching every filter, opted in, not struck off by their provider, and registered in live mode. Test-mode devices are never counted. */
+            /** @description Matching live devices that are opted in and not invalidated. Test-mode devices are excluded. */
             reachable: number;
         };
         SavedAudiencePreviewRequest: {
@@ -497,16 +497,16 @@ export interface components {
             key_id: string;
             team_id: string | null;
             bundle_id: string | null;
-            /** @description Truncated SHA-256 of the material, so two keys can be told apart on screen. */
+            /** @description Truncated SHA-256 fingerprint of the credential material. */
             fingerprint: string;
             /** @enum {string} */
             status: "valid" | "invalid" | "revoked";
             /**
              * Format: date-time
-             * @description When a validation last asked the provider about it, whatever the answer. Null means never asked.
+             * @description Last provider validation time. Null if never validated.
              */
             validated_at: string | null;
-            /** @description The provider’s own word for the refusal: `InvalidProviderToken`, `SENDER_ID_MISMATCH`, `invalid_grant`. Null on a credential nothing has refused. */
+            /** @description Last provider rejection code, or null if none was recorded. */
             last_error: string | null;
             /** Format: date-time */
             created_at: string;
@@ -522,11 +522,11 @@ export interface components {
             /** @description Apple team identifier. Not used by FCM. */
             team_id?: string | null;
             /**
-             * @description The app identifier APNs routes by: its topic. Required in practice for APNs. Not used by FCM, where the project lives inside the service account JSON.
+             * @description APNs bundle identifier (topic). Not used for FCM.
              * @example dev.carillon.example
              */
             bundle_id?: string | null;
-            /** @description The .p8 file for APNs, or the service account JSON for FCM, exactly as downloaded. It is sealed on arrival and never returned. */
+            /** @description Contents of the APNs .p8 file or FCM service account JSON. Encrypted on upload and never returned. */
             material: string;
         };
         Device: {
@@ -564,24 +564,24 @@ export interface components {
             /** @enum {string} */
             platform: "ios" | "android";
             /**
-             * @description Declared by the SDK from the build it is running in, never configured by you. It decides which APNs endpoint the notification goes to.
+             * @description APNs environment detected by the SDK from the app build. Selects the sandbox or production APNs endpoint.
              * @enum {string}
              */
             environment: "production" | "sandbox";
-            /** @description Your own identifier for the person using this device. An attribute of the device, never an entity: one person on two handsets is two devices. */
+            /** @description Your user identifier. Multiple devices can share the same external_id. */
             external_id?: string | null;
             tags?: components["schemas"]["DeviceTags"];
             timezone_id?: string | null;
             locale?: string | null;
             app_version?: string | null;
-            /** @description The monotonic build identifier: CFBundleVersion on iOS, versionCode on Android. Several builds share one app_version, and it is the build that identifies which one a device is running. */
+            /** @description CFBundleVersion on iOS or versionCode on Android, encoded as a string. */
             app_build?: string | null;
-            /** @description The binary’s own identity: Bundle.main.bundleIdentifier or context.packageName. It is what an APNs topic is checked against. */
+            /** @description Bundle identifier on iOS or package name on Android. */
             bundle_id?: string | null;
-            /** @description The version string the OS reports, verbatim. Nothing is normalised here: whatever the vendor said is what is stored. */
+            /** @description OS version reported by the device, stored without normalization. */
             os_version?: string | null;
             /**
-             * @description What the OS will do with a notification for this app. provisional is Apple’s quiet delivery: granted, but arriving where almost nobody looks; undetermined means nobody has been asked yet. Android reports only allowed or denied.
+             * @description OS notification permission. iOS supports all four values; Android reports allowed or denied.
              * @enum {string|null}
              */
             push_permission?: "allowed" | "denied" | "provisional" | "undetermined" | null;
@@ -598,7 +598,7 @@ export interface components {
             [key: string]: string | number | boolean;
         } | null;
         EventReceipt: {
-            /** @description How many events were in the request. Never how many were recorded: that number would tell you which delivery ids are real. */
+            /** @description Number of submitted events, including ignored events. */
             received: number;
         };
         EventBatch: {
@@ -609,12 +609,12 @@ export interface components {
             type: "opened";
             /**
              * Format: uuid
-             * @description From the notification payload, under the reserved `carillon` key. Holding it is what proves the notification arrived.
+             * @description delivery_id from the reserved carillon object in the notification payload.
              */
             delivery_id: string;
             /**
              * Format: date-time
-             * @description When it happened on the device, ISO 8601. Stored as sent unless the clock is impossible (in the future, or more than thirty days old), in which case the moment we received it is stored instead.
+             * @description Event time in ISO 8601. Future timestamps and timestamps older than 30 days are replaced with the server receipt time.
              */
             at: string;
         };
@@ -622,16 +622,16 @@ export interface components {
             /** Format: uuid */
             id: string;
             /**
-             * @description failed means the file could not be read at all. A file with rejected lines is done: the valid lines were imported, and the invalid ones are listed below.
+             * @description failed means the file could not be parsed. done can include rejected rows; valid rows are still imported.
              * @enum {string}
              */
             status: "pending" | "processing" | "done" | "failed";
             counts: components["schemas"]["DeviceImportCounts"];
-            /** @description The rejected lines, at most 1000 of them. Empty until the import finishes. */
+            /** @description Up to 1000 rejected rows. Empty until processing finishes. */
             errors: components["schemas"]["DeviceImportError"][];
-            /** @description True when more than 1000 lines were rejected. `counts.invalid` is still exact. */
+            /** @description True if rejected rows exceed 1000. See counts for the total. */
             errors_truncated: boolean;
-            /** @description Header columns we do not use, kept verbatim. They are ignored rather than refused, but a misspelled `timezone_id` would otherwise be a column that silently did nothing. */
+            /** @description Unrecognized header columns. These columns are ignored. */
             ignored_columns: string[];
             /** @description Why the file could not be read. Null unless status is failed. */
             failure: string | null;
@@ -643,13 +643,13 @@ export interface components {
         DeviceImportCounts: {
             /** @description Device rows written by this import. */
             created: number;
-            /** @description Lines whose token this app already had. The existing row is left exactly as it was (the SDK knows more about a device than a CSV does), which is also what makes re-running the same file create nothing. */
+            /** @description Rows skipped because their token already exists in this app. Existing device data is unchanged. */
             already_present: number;
-            /** @description Lines that were rejected. Exact, however many of them the report lists. */
+            /** @description Total rejected rows, including those omitted from the error sample. */
             invalid: number;
         };
         DeviceImportError: {
-            /** @description Counting the header as line 1. */
+            /** @description CSV line number, including the header as line 1. */
             line: number;
             field: string;
             message: string;
@@ -667,42 +667,42 @@ export interface components {
             schedule_type: "immediate" | "absolute" | "local_time";
             /**
              * Format: date-time
-             * @description The instant an absolute campaign was scheduled for. Null for the other two.
+             * @description Scheduled send time. Null unless scheduled with send_at.
              */
             send_at: string | null;
-            /** @description The recipient-local reading a wave campaign fires on. Null for the other two. */
+            /** @description Recipient-local send time. Null unless scheduled with local_time. */
             local_time: string | null;
-            /** @description Where devices with no known zone were sent. Null for the other two. */
+            /** @description Fallback IANA timezone. Null unless scheduled with local_time. */
             timezone_fallback: string | null;
             /**
              * Format: date-time
-             * @description When cancellation was asked for. Whatever had already been handed to Apple or Google went out anyway; the trace still shows it.
+             * @description Cancellation request time. Deliveries already in flight may still be sent.
              */
             canceled_at: string | null;
-            /** @description Zero waves for anything but a `local_time` campaign, which has one per zone group. */
+            /** @description Timezone waves. Empty unless scheduled with local_time. */
             waves: {
                 count: number;
                 /**
                  * Format: date-time
-                 * @description The next wave still to go out. Null once every wave has fired.
+                 * @description Next pending timezone wave. Null if none remain.
                  */
                 next_fire_at: string | null;
             };
-            /** @description Notifications per second this campaign is going out at: its own, or the app's ceiling where it named none. Never null and never unlimited: there is always a rate. */
+            /** @description Effective campaign-wide notifications per second. */
             delivery_rate: number;
-            /** @description Deliveries still queued. Notifications already handed to a provider are not counted: they are not remaining work, whatever their outcome turns out to be. */
+            /** @description Number of queued deliveries. Excludes deliveries already in flight. */
             remaining: number;
-            /** @description Why sending stopped, in the provider's own words, when the circuit breaker paused this campaign over repeated configuration errors. Null for every campaign that is not paused. */
+            /** @description Provider error that paused the campaign after repeated configuration failures. Null unless paused. */
             paused_reason: string | null;
-            /** @description What became of every delivery, counted. The `deliveries` list is a bounded sample; these figures cover the whole audience. */
+            /** @description Counts across all deliveries. The deliveries array contains only a sample. */
             outcomes: {
                 sent: number;
                 failed: number;
-                /** @description Still queued or already handed to a provider, outcome unknown either way. */
+                /** @description Queued and in-flight deliveries whose final outcome is not yet recorded. */
                 pending: number;
                 total: number;
             };
-            /** @description The first 50 deliveries, in the order they were created. A sample, not the audience: `outcomes` counts every delivery, and a single delivery is read in full through the id the send response returned. */
+            /** @description First 50 deliveries in creation order. Use counts for totals across the campaign. */
             deliveries: {
                 /** Format: uuid */
                 id: string;
@@ -710,11 +710,11 @@ export interface components {
                 device_id: string;
                 /** @enum {string} */
                 status: "queued" | "in_flight" | "sent" | "failed";
-                /** @description Why this delivery stopped where it did: the provider's own reason, or ours when nothing was attempted. */
+                /** @description Provider or Carillon failure code. */
                 error_code: string | null;
                 /**
                  * Format: date-time
-                 * @description When a handset reported opening it. Null until one does, and null for ever if none ever does: an unopened notification and an app that never reports are the same absence here.
+                 * @description Time reported by the device when the notification was opened. Null if no open was recorded.
                  */
                 opened_at: string | null;
             }[];
@@ -722,9 +722,9 @@ export interface components {
         Cancellation: {
             /** @enum {boolean} */
             canceled: true;
-            /** @description Notifications Apple or Google already had when this arrived, including the ones whose outcome we are still waiting for. None of them was stopped, and none of them could be. */
+            /** @description Deliveries marked sent or in_flight when cancellation was requested. In-flight deliveries may still be sent. */
             already_sent: number;
-            /** @description Deliveries this campaign will now never make. Zero for a campaign cancelled before it resolved: there was nothing written down yet to spare. */
+            /** @description Queued deliveries cancelled. Zero if the audience had not yet been resolved. */
             canceled_count: number;
         };
         Message: {
@@ -736,14 +736,14 @@ export interface components {
             mode: "live" | "test";
             /** Format: date-time */
             created_at: string;
-            /** @description One entry per device named, including those nothing was sent to. Read the trace for what became of each. Empty for an `all` audience, whose size is not known until the worker has resolved it, and empty for any scheduled campaign: a device may be opted out, replaced or gone by the time it fires, so the identifiers are minted then and the trace is where that campaign is followed. */
+            /** @description Delivery ids for an immediate device_ids send, including failed deliveries. Empty for scheduled sends and worker-resolved audiences; follow the campaign trace for results. */
             deliveries: {
                 /** Format: uuid */
                 id: string;
                 /** Format: uuid */
                 device_id: string;
             }[];
-            /** @description Empty on an ordinary send. An entry means part of this campaign cannot go out and was written off before anything was attempted. Today the only cause is a provider that has stopped accepting the app’s credential. A campaign where *every* platform is in that state is refused with 422 instead of accepted with warnings. */
+            /** @description Platforms blocked by missing or rejected credentials. Empty if none are blocked. Returns 422 if all targeted platforms are blocked. */
             warnings: components["schemas"]["SendWarning"][];
         };
         SendWarning: {
@@ -751,18 +751,18 @@ export interface components {
             code: "no_valid_credential";
             /** @enum {string} */
             platform: "ios" | "android";
-            /** @description One sentence saying what will not happen, and to whose devices. */
+            /** @description Description of the blocked platform and reason. */
             detail: string;
-            /** @description Devices of this platform the campaign named. Null for an `all` audience, whose size the worker resolves. */
+            /** @description Number of affected devices. Null when the audience has not been resolved. */
             devices: number | null;
-            /** @description The code every affected delivery is written off with: the provider’s own word where there is one, `NoCredential` where the app uploaded none. */
+            /** @description Delivery error code for the affected platform. NoCredential means no credential is configured. */
             reason: string;
-            /** @description Null when there is no credential for that provider at all. */
+            /** @description Null if no credential exists for this provider. */
             credential: {
                 key_id: string;
                 /**
                  * Format: date-time
-                 * @description When the provider last refused it. Null if it has never been checked.
+                 * @description Last provider rejection time, or null if none was recorded.
                  */
                 rejected_at: string | null;
             } | null;
@@ -771,28 +771,28 @@ export interface components {
             audience: components["schemas"]["Audience"];
             payload: components["schemas"]["MessagePayload"];
             /**
-             * @description Your own name for this notification, unique for as long as it must not be sent again. A second send under the same key is refused with 409 for 30 days, whatever its body: this is the business rule, not a retry safeguard. Use `Idempotency-Key` for retries.
+             * @description Business deduplication key. Reuse returns 409 for 30 days regardless of the body. Use Idempotency-Key for request retries.
              * @example order-1234-shipped
              */
             dedup_key?: string;
             /**
              * Format: date-time
-             * @description One instant, the same for everybody. Must be in the future and at most 30 days ahead. The campaign is accepted immediately and answers `scheduled`; its trace fills in when it fires.
+             * @description Scheduled send time, shared by all recipients. Must be in the future and within 30 days. Returns status scheduled.
              * @example 2026-12-24T18:00:00Z
              */
             send_at?: string;
             /**
-             * @description A reading of the recipient’s own clock, `HH:MM` on 24 hours. Devices are grouped into waves by the zone they registered from, and each wave goes out when that reading arrives there: today where it is still ahead, tomorrow where it has passed. Requires `timezone_fallback`.
+             * @description Recipient-local send time in HH:MM format. Sends today if that time has not passed in the device timezone, otherwise tomorrow. Requires timezone_fallback.
              * @example 10:00
              */
             local_time?: string;
             /**
-             * @description The IANA zone standing in for devices whose own is unknown. Required with `local_time`: without it those devices would be dropped from the campaign with nothing to say so. An identifier such as `Europe/Paris`, never an offset: an offset is wrong twice a year.
+             * @description IANA timezone for devices without a known timezone, such as Europe/Paris. Required with local_time.
              * @example Europe/Paris
              */
             timezone_fallback?: string;
             /**
-             * @description Notifications per second, for this campaign. Absent means your app's ceiling, which is what a campaign goes out at unless you say otherwise: there is no unlimited. Above the ceiling is refused with 422 rather than capped, because a campaign quietly slower than you asked for is one nobody can explain. It applies to the whole campaign, never per wave: `local_time` waves are already spread over about 26 hours.
+             * @description Campaign-wide notifications per second. Defaults to the app limit; values above that limit return 422. Applies across all timezone waves, which span about 26 hours.
              * @example 500
              */
             delivery_rate?: number;
@@ -802,14 +802,14 @@ export interface components {
             device_ids: string[];
         } | {
             /**
-             * @description Every device registered to this app. Devices that have opted out or been struck off by their provider still appear in the trace, marked with why nothing was sent to them.
+             * @description All devices in this app and key mode. Opted-out or invalidated devices are recorded as failed deliveries.
              * @enum {boolean}
              */
             all: true;
         } | {
             /**
              * Format: uuid
-             * @description A saved audience of this app, by id. Its filters are copied onto the campaign as it is written, so editing or deleting the audience afterwards never changes who a campaign already accepted goes to; the devices themselves are found when the campaign fires. An id this app does not have is refused with 422 `unknown_audience`, whether it belongs to somebody else or to nobody: list your audiences to find the one you meant.
+             * @description Saved audience id in this app. Filters are copied when the campaign is accepted; devices are resolved at send time. Unknown ids return 422 unknown_audience.
              * @example 01937b1e-0000-7000-8000-000000000000
              */
             audience_id: string;
@@ -818,17 +818,17 @@ export interface components {
             title?: string;
             body?: string;
             data?: components["schemas"]["MessageData"];
-            /** @description Keyed by BCP 47 tag. A device matches its exact tag, then its language alone, then falls through to the base text. */
+            /** @description Localized text by language tag. Matches the device locale, then its language, then the base text. */
             localizations?: {
                 [key: string]: components["schemas"]["Localization"];
             };
-            /** @description Raw APNs, merged over everything computed from the fields above and winning every conflict. The escape hatch for a payload Apple documents and we do not model yet. */
+            /** @description Raw APNs payload merged over the generated payload. Overrides conflicting fields. */
             apns?: {
                 [key: string]: unknown;
             };
         };
         /**
-         * @description Custom keys, delivered alongside the alert. `carillon` is reserved: Carillon travels under it, and a payload claiming it is refused rather than silently overwritten.
+         * @description Custom scalar fields delivered with the notification. The carillon key is reserved and must not be included.
          * @example {
          *       "order_id": "42"
          *     }
@@ -836,7 +836,7 @@ export interface components {
         MessageData: {
             [key: string]: string | number | boolean | unknown;
         };
-        /** @description Overrides only the fields it carries. Absent means "keep the base text". */
+        /** @description Overrides the supplied fields. Omitted fields keep the base text. */
         Localization: {
             title?: string;
             body?: string;
@@ -862,7 +862,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The process is up. */
+            /** @description Process is running. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -910,7 +910,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The app. It is born holding one live mobile key, readable in the key list: creation returns only the app itself. */
+            /** @description Created app. A live mobile key is also created; retrieve it from the key list. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -958,7 +958,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The key. This is the only response that carries a secret key’s value. Store it now. */
+            /** @description Created key. Store the secret key value now; it cannot be retrieved later. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1038,7 +1038,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The audience, as it was stored. Send its id as `audience_id` to reach it. */
+            /** @description Created audience. Use its id as audience_id when sending a message. */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -1070,7 +1070,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Gone. Campaigns already sent to it are untouched: each one carries its own copy of the filters it was written against. */
+            /** @description Audience deleted. Existing campaigns retain their copied filters. */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -1103,7 +1103,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The count, as of now. Nothing is saved: this answers a question about a definition you are still assembling. */
+            /** @description Current matching-device count. Does not save the definition. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1125,7 +1125,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Every credential, without their material: R4 keeps it write-only. */
+            /** @description Credential metadata. Secret material is excluded. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1151,7 +1151,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The credential, without its material: sealed on arrival, never returned. */
+            /** @description Created credential metadata. Secret material is excluded. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1174,7 +1174,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Gone. Sending through that provider stops immediately. */
+            /** @description Credential deleted. */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -1205,7 +1205,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The device as it now stands. */
+            /** @description Registered device. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1238,7 +1238,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Accepted. Unknown, foreign and already-reported ids are dropped in silence. */
+            /** @description Batch accepted. Unknown, cross-app, and duplicate delivery ids are ignored. */
             202: {
                 headers: {
                     [name: string]: unknown;
@@ -1260,7 +1260,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The import, with its counts and whatever it rejected. */
+            /** @description Import status, counts, and rejected-row sample. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1291,7 +1291,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The campaign, with one delivery per device it named. */
+            /** @description Campaign details, delivery counts, and a bounded delivery sample. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1331,7 +1331,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The campaign is marked cancelled, and this is what that spared. */
+            /** @description Cancelled campaign and delivery counts. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1364,7 +1364,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Makes a retry safe. A request repeated under the same key returns the first answer instead of sending anything again; the same key with a different body is refused. Kept for 24 hours. Any string you can generate per attempt; a UUID is the usual choice. */
+                /** @description Retry key retained for 24 hours. Reuse the same key and identical request-body bytes to receive the original response. A different body returns 422; a concurrent request returns 409. */
                 "idempotency-key"?: string;
             };
             path?: never;
@@ -1376,7 +1376,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The campaign, accepted and now sending. */
+            /** @description Campaign accepted for sending or scheduling. */
             202: {
                 headers: {
                     [name: string]: unknown;
@@ -1427,7 +1427,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Stored and queued. Nothing has been parsed yet. Poll the import to watch it, and read the report when it finishes. */
+            /** @description CSV stored and queued for processing. Poll the returned import id for status and errors. */
             202: {
                 headers: {
                     [name: string]: unknown;

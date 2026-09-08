@@ -34,9 +34,9 @@ function sleep(seconds: number): Promise<void> {
 }
 
 export const login = new Command('login')
-  .description('Sign in through the browser (or with --email/--password, for scripts)')
-  .option('--email <email>', 'account email; presence switches to password sign-in')
-  .option('--password <password>', 'account password; presence switches to password sign-in')
+  .description('Sign in through a browser or with email and password')
+  .option('--email <email>', 'account email (uses password sign-in)')
+  .option('--password <password>', 'account password (uses password sign-in)')
   .action(async (options: { email?: string; password?: string }) => {
     intro(pc.bold('carillon login'))
 
@@ -63,7 +63,7 @@ async function deviceSignIn(): Promise<void> {
   })
 
   if (!response.ok || grant === null) {
-    fail('The server refused to start a device sign-in. It is probably too old for this CLI.')
+    fail('Could not start browser sign-in. Check CARILLON_AUTH_URL and try again.')
   }
 
   note(
@@ -75,7 +75,7 @@ async function deviceSignIn(): Promise<void> {
 
   const working = spinner()
 
-  working.start('Waiting for the approval in the browser')
+  working.start('Waiting for browser approval')
 
   const token = await pollForToken(grant)
 
@@ -86,7 +86,7 @@ async function deviceSignIn(): Promise<void> {
 
   working.stop(`Signed in as ${session?.user.email ?? 'you'}`)
 
-  outro(`Next: ${pc.cyan('carillon use')} picks the organization and app to work in.`)
+  outro(`Next: ${pc.cyan('carillon use')} to select an organization and app.`)
 }
 
 async function pollForToken(grant: DeviceGrant): Promise<string> {
@@ -115,13 +115,16 @@ async function pollForToken(grant: DeviceGrant): Promise<string> {
     }
 
     if (body?.error === 'access_denied') {
-      fail('The sign-in was denied in the browser. Nothing was granted.')
+      fail('Sign-in denied. Run `carillon login` to try again.')
     }
     if (body?.error === 'expired_token') {
       fail('The code expired before it was approved. Run `carillon login` again for a fresh one.')
     }
 
-    fail(body?.error_description ?? `The server answered HTTP ${response.status} mid sign-in.`)
+    fail(
+      body?.error_description ??
+        `Sign-in failed (HTTP ${response.status}). Run \`carillon login\` to try again.`,
+    )
   }
 }
 
@@ -133,7 +136,7 @@ async function passwordSignIn(options: { email?: string; password?: string }): P
         message: 'Email',
         placeholder: 'you@company.com',
         validate: (value) =>
-          value !== undefined && value.includes('@') ? undefined : 'An email address.',
+          value !== undefined && value.includes('@') ? undefined : 'Enter an email address.',
       }),
     )
   const password = options.password ?? answered(await passwordPrompt({ message: 'Password' }))
@@ -148,23 +151,22 @@ async function passwordSignIn(options: { email?: string; password?: string }): P
   })
 
   if (!response.ok) {
-    working.stop('Sign-in refused')
+    working.stop('Sign-in failed')
     fail(
-      'That email and password opened nothing. Carillon has no self-registration: ' +
-        'accounts come from a dashboard invitation, so ask an organization owner to ' +
-        'invite you — or reset your password from the dashboard sign-in page.',
+      'Sign-in failed. Check your email and password or reset your password from the dashboard. ' +
+        'If you do not have an account, ask an organization owner for an invitation.',
     )
   }
 
   const token = response.header('set-auth-token')
 
   if (token === null) {
-    working.stop('Sign-in answered without a token')
-    fail('The server did not return a bearer token. It is probably too old for CLI sign-in.')
+    working.stop('No session token returned')
+    fail('The server returned no session token. Check CARILLON_AUTH_URL and try again.')
   }
 
   writeToken(token)
   working.stop(`Signed in as ${body?.user.email ?? email}`)
 
-  outro(`Next: ${pc.cyan('carillon use')} picks the organization and app to work in.`)
+  outro(`Next: ${pc.cyan('carillon use')} to select an organization and app.`)
 }
