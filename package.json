@@ -4,6 +4,14 @@
   "description": "Command-line interface for Carillon, the European push notification service.",
   "license": "MIT",
   "author": "Exostack SARL",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/exostack/carillon-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/exostack/carillon-cli/issues"
+  },
+  "homepage": "https://github.com/exostack/carillon-cli#readme",
   "type": "module",
   "bin": {
     "carillon": "dist/index.js"
@@ -14,13 +22,18 @@
   "engines": {
     "node": ">=20"
   },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "build": "tsup",
     "generate": "openapi-typescript ../carillon/public-openapi.json -o src/generated/api.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --check .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@clack/prompts": "^1.7.0",
