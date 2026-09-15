@@ -14,7 +14,7 @@ credentials and keys are managed through the public API's management section
 npm install -g @exostack/carillon-cli
 ```
 
-Node 20 or later.
+Node 22.12 or later.
 
 ## Signing in
 
