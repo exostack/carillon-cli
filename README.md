@@ -3,11 +3,6 @@
 The Carillon command line. Organizations, apps, push credentials and API keys,
 from a terminal.
 
-It speaks to two hosts, on purpose: signing in and organization membership go
-through the dashboard host (`app.carillon.dev`), while apps,
-credentials and keys are managed through the public API's management section
-(`api.carillon.dev`, `/v1`) — the same session, presented as a bearer token.
-
 ## Installing
 
 ```sh
