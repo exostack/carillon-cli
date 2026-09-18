@@ -131,6 +131,8 @@ export function describeFilter(filter: AudienceFilter): string {
       return `OS version ${filter.value}`
     case 'last_active':
       return `active in the last ${filter.within_days} day${filter.within_days === 1 ? '' : 's'}`
+    case 'user_tag':
+      return `user tag ${filter.key}=${filter.value}`
     case 'tag':
       return `tag ${filter.key}=${filter.value}`
   }

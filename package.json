@@ -1,6 +1,6 @@
 {
   "name": "@exostack/carillon-cli",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Command-line interface for Carillon, the European push notification service.",
   "license": "MIT",
   "author": "Exostack SARL",

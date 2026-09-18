@@ -15,6 +15,9 @@ function saved(id: string, name: string): SavedAudience {
 }
 
 describe('describeFilters', () => {
+  it('describes shared user tags', () => {
+    expect(describeFilters([{ field: 'user_tag', key: 'plan', value: 'pro' }])).toBe('user tag plan=pro')
+  })
   it('says everyone when nothing narrows', () => {
     expect(describeFilters([])).toBe('everyone')
   })

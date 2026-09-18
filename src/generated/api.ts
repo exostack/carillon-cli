@@ -24,6 +24,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/apps/{appId}/audiences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the saved audiences of an app */
+        get: operations["listAudiences"];
+        put?: never;
+        /** Save an audience */
+        post: operations["createAudience"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{appId}/audiences/{audienceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a saved audience */
+        delete: operations["deleteAudience"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{appId}/audiences/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview an audience */
+        post: operations["previewAudience"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{organizationId}/apps": {
         parameters: {
             query?: never;
@@ -77,58 +129,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/apps/{appId}/audiences": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List the saved audiences of an app */
-        get: operations["listAudiences"];
-        put?: never;
-        /** Save an audience */
-        post: operations["createAudience"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/apps/{appId}/audiences/{audienceId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete a saved audience */
-        delete: operations["deleteAudience"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/apps/{appId}/audiences/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Preview an audience */
-        post: operations["previewAudience"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/apps/{appId}/credentials": {
         parameters: {
             query?: never;
@@ -171,14 +171,63 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List devices for export */
+        get: operations["exportDevices"];
         put?: never;
         /** Register or refresh a device */
         post: operations["registerDevice"];
-        delete?: never;
+        /**
+         * Remove every device of a user
+         * @description Deletes every device row carrying this external_id. Delivery traces and usage already counted for the current month are kept.
+         */
+        delete: operations["deleteDevicesByExternalId"];
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/v1/devices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a device */
+        get: operations["readDevice"];
+        put?: never;
+        post?: never;
+        /**
+         * Remove a device
+         * @description Deletes the device row. Delivery traces and usage already counted for the current month are kept. Removing an unknown or already removed id also answers 204.
+         */
+        delete: operations["deleteDevice"];
+        options?: never;
+        head?: never;
+        /**
+         * Merge device tags
+         * @description Requires a secret key with devices:write. Updates only supplied tag keys; null removes a key. Other device fields and activity timestamps are unchanged. Concurrent updates to different keys are preserved; the last applied update wins for the same key.
+         */
+        patch: operations["patchDeviceTags"];
+        trace?: never;
+    };
+    "/v1/users/{externalId}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read shared user tags */
+        get: operations["readUserTags"];
+        put?: never;
+        post?: never;
+        /** Delete a user tag profile without changing its devices */
+        delete: operations["deleteUserTags"];
+        options?: never;
+        head?: never;
+        /** Merge shared user tags, creating the profile if needed */
+        patch: operations["patchUserTags"];
         trace?: never;
     };
     "/v1/events": {
@@ -207,6 +256,23 @@ export interface paths {
         };
         /** Get an import */
         get: operations["getDeviceImport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/messages/{id}/opens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get hourly campaign opens */
+        get: operations["getMessageOpens"];
         put?: never;
         post?: never;
         delete?: never;
@@ -263,7 +329,7 @@ export interface paths {
         put?: never;
         /**
          * Send or schedule a notification
-         * @description Create a campaign for device_ids, all devices, or a saved audience. Sending runs asynchronously. Use Idempotency-Key for retries and dedup_key to reject duplicate business notifications for 30 days.
+         * @description Create a campaign for one of four audiences: device_ids, external_ids, all devices, or a saved audience (audience_id). Sending runs asynchronously. Use Idempotency-Key for retries and dedup_key to reject duplicate business notifications for 30 days.
          */
         post: operations["sendMessage"];
         delete?: never;
@@ -343,6 +409,132 @@ export interface components {
             /** @description Build commit SHA. Null if not configured. */
             revision: string | null;
         };
+        SavedAudienceList: {
+            data: components["schemas"]["SavedAudience"][];
+        };
+        SavedAudience: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            definition: components["schemas"]["SavedAudienceDefinition"];
+            /** Format: date-time */
+            created_at: string;
+        };
+        SavedAudienceDefinition: {
+            /** @description All filters must match. An empty list matches all eligible devices in the app. */
+            filters: components["schemas"]["SavedAudienceFilter"][];
+        };
+        /** @description Condition on a device attribute or shared user tag. All filters must match. Choose one comparison per filter. */
+        SavedAudienceFilter: {
+            /** @enum {string} */
+            field: "platform";
+            /** @enum {string} */
+            value: "ios" | "android";
+        } | {
+            /** @enum {string} */
+            field: "push_permission";
+            /** @enum {string} */
+            value: "allowed" | "denied" | "provisional" | "undetermined";
+        } | {
+            /** @enum {string} */
+            field: "source";
+            /**
+             * @description How the device arrived: registered by an SDK, or loaded by a CSV import.
+             * @enum {string}
+             */
+            value: "sdk" | "import";
+        } | {
+            /** @enum {string} */
+            field: "locale";
+            /** @description Equals this value. */
+            value?: string;
+            /** @description Equals any of these values. */
+            in?: string[];
+            /** @description Equals none of these values. A device without the attribute matches. */
+            not_in?: string[];
+        } | {
+            /** @enum {string} */
+            field: "timezone_id";
+            /** @description Equals this value. */
+            value?: string;
+            /** @description Equals any of these values. */
+            in?: string[];
+            /** @description Equals none of these values. A device without the attribute matches. */
+            not_in?: string[];
+        } | {
+            /** @enum {string} */
+            field: "app_version";
+            /** @description Equals this value. */
+            value?: string;
+            /** @description Equals any of these values. */
+            in?: string[];
+            /** @description Equals none of these values. A device without the attribute matches. */
+            not_in?: string[];
+        } | {
+            /** @enum {string} */
+            field: "app_build";
+            /** @description Equals this value. */
+            value?: string;
+            /** @description Equals any of these values. */
+            in?: string[];
+            /** @description Equals none of these values. A device without the attribute matches. */
+            not_in?: string[];
+        } | {
+            /** @enum {string} */
+            field: "os_version";
+            /** @description Equals this value. */
+            value?: string;
+            /** @description Equals any of these values. */
+            in?: string[];
+            /** @description Equals none of these values. A device without the attribute matches. */
+            not_in?: string[];
+        } | {
+            /** @enum {string} */
+            field: "last_active";
+            /**
+             * @description Devices seen within this many days of the moment the audience is resolved, not of the moment it was saved.
+             * @example 30
+             */
+            within_days: number;
+        } | {
+            /** @enum {string} */
+            field: "tag" | "user_tag";
+            /** @example plan */
+            key: string;
+            /** @description Equals this value. */
+            value?: string;
+            /** @description Equals any of these values. */
+            in?: string[];
+            /** @description Equals none of these values. A device without the attribute matches. */
+            not_in?: string[];
+            /** @description true matches devices whose device or user tag is present; false matches an absent tag. */
+            exists?: boolean;
+        };
+        Problem: {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            docs: string;
+            detail?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        SavedAudienceCreation: {
+            /**
+             * @description Audience name, unique within the app.
+             * @example Lapsed iOS
+             */
+            name: string;
+            definition: components["schemas"]["SavedAudienceDefinition"];
+        };
+        SavedAudiencePreview: {
+            /** @description Matching live devices that are opted in and not invalidated. Test-mode devices are excluded. */
+            reachable: number;
+        };
+        SavedAudiencePreviewRequest: {
+            definition: components["schemas"]["SavedAudienceDefinition"];
+        };
         App: {
             /** Format: uuid */
             id: string;
@@ -383,112 +575,6 @@ export interface components {
             /** @description Optional key label. */
             label?: string | null;
         };
-        Problem: {
-            type: string;
-            title: string;
-            status: number;
-            code: string;
-            docs: string;
-            detail?: string;
-        } & {
-            [key: string]: unknown;
-        };
-        SavedAudienceList: {
-            data: components["schemas"]["SavedAudience"][];
-        };
-        SavedAudience: {
-            /** Format: uuid */
-            id: string;
-            name: string;
-            definition: components["schemas"]["SavedAudienceDefinition"];
-            /** Format: date-time */
-            created_at: string;
-        };
-        SavedAudienceDefinition: {
-            /** @description All filters must match. An empty list matches all eligible devices in the app. */
-            filters: components["schemas"]["SavedAudienceFilter"][];
-        };
-        /** @description Condition on a device attribute. All filters must match. */
-        SavedAudienceFilter: {
-            /** @enum {string} */
-            field: "platform";
-            /** @enum {string} */
-            value: "ios" | "android";
-        } | {
-            /** @enum {string} */
-            field: "push_permission";
-            /** @enum {string} */
-            value: "allowed" | "denied" | "provisional" | "undetermined";
-        } | {
-            /** @enum {string} */
-            field: "source";
-            /**
-             * @description How the device arrived: registered by an SDK, or loaded by a CSV import.
-             * @enum {string}
-             */
-            value: "sdk" | "import";
-        } | {
-            /** @enum {string} */
-            field: "locale";
-            /**
-             * @description The BCP 47 tag the device reported, compared exactly.
-             * @example fr-FR
-             */
-            value: string;
-        } | {
-            /** @enum {string} */
-            field: "timezone_id";
-            /**
-             * @description IANA timezone identifier, such as Europe/Paris.
-             * @example Europe/Paris
-             */
-            value: string;
-        } | {
-            /** @enum {string} */
-            field: "app_version";
-            /** @example 3.2.1 */
-            value: string;
-        } | {
-            /** @enum {string} */
-            field: "app_build";
-            /** @example 4821 */
-            value: string;
-        } | {
-            /** @enum {string} */
-            field: "os_version";
-            /** @example 18.2 */
-            value: string;
-        } | {
-            /** @enum {string} */
-            field: "last_active";
-            /**
-             * @description Number of days since last activity, evaluated when the audience is resolved.
-             * @example 30
-             */
-            within_days: number;
-        } | {
-            /** @enum {string} */
-            field: "tag";
-            /** @example plan */
-            key: string;
-            /** @example pro */
-            value: string;
-        };
-        SavedAudienceCreation: {
-            /**
-             * @description Audience name, unique within the app.
-             * @example Lapsed iOS
-             */
-            name: string;
-            definition: components["schemas"]["SavedAudienceDefinition"];
-        };
-        SavedAudiencePreview: {
-            /** @description Matching live devices that are opted in and not invalidated. Test-mode devices are excluded. */
-            reachable: number;
-        };
-        SavedAudiencePreviewRequest: {
-            definition: components["schemas"]["SavedAudienceDefinition"];
-        };
         Credential: {
             /** Format: uuid */
             id: string;
@@ -508,8 +594,17 @@ export interface components {
             validated_at: string | null;
             /** @description Last provider rejection code, or null if none was recorded. */
             last_error: string | null;
+            validation?: components["schemas"]["CredentialValidation"];
             /** Format: date-time */
             created_at: string;
+        };
+        /** @description Result of this upload validation only, not retained by credential listing. An unreachable result is not a credential rejection. The stage locates the observed failure, not its root cause. No raw provider response or key material is returned. */
+        CredentialValidation: {
+            /** @enum {string} */
+            outcome: "valid" | "invalid" | "unreachable" | "not_checked";
+            /** @enum {string|null} */
+            stage: "input" | "oauth" | "provider" | "validation" | null;
+            code: string | null;
         };
         CredentialUpload: {
             /** @enum {string} */
@@ -553,12 +648,35 @@ export interface components {
             opted_in: boolean;
             /** Format: date-time */
             invalidated_at: string | null;
+            /** @description Why the device was invalidated: Superseded when a newer registration took its token, otherwise the provider feedback code such as Unregistered. Null while the device is valid. */
+            invalidation_reason: string | null;
             /** Format: date-time */
             last_active_at: string | null;
             /** Format: date-time */
             created_at: string;
         };
+        DevicesDeleted: {
+            /** @description Device rows removed by this call. */
+            deleted: number;
+        };
+        /**
+         * @description Merge these keys with existing tags. A null value removes that key; omitted keys are unchanged.
+         * @example {
+         *       "plan": "pro",
+         *       "beta": null
+         *     }
+         */
+        DeviceTags: {
+            [key: string]: string | number | boolean | unknown;
+        };
         DeviceRegistration: {
+            /**
+             * Format: uuid
+             * @description Previous registration ID. Token rotation requires the matching installation_secret.
+             */
+            device_id?: string;
+            /** @description 32 random bytes encoded as unpadded base64url, persisted by this installation. Never expose it in logs or analytics. */
+            installation_secret?: string;
             /** @description The provider token, exactly as the device received it. */
             token: string;
             /** @enum {string} */
@@ -570,7 +688,7 @@ export interface components {
             environment: "production" | "sandbox";
             /** @description Your user identifier. Multiple devices can share the same external_id. */
             external_id?: string | null;
-            tags?: components["schemas"]["DeviceTags"];
+            tags?: components["schemas"]["DeviceTags"] & unknown;
             timezone_id?: string | null;
             locale?: string | null;
             app_version?: string | null;
@@ -588,15 +706,12 @@ export interface components {
             sdk_version?: string | null;
             opted_in?: boolean;
         };
-        /**
-         * @example {
-         *       "plan": "pro",
-         *       "beta": true
-         *     }
-         */
-        DeviceTags: {
-            [key: string]: string | number | boolean;
-        } | null;
+        UserTags: {
+            external_id: string;
+            tags: {
+                [key: string]: string | number | boolean;
+            };
+        };
         EventReceipt: {
             /** @description Number of submitted events, including ignored events. */
             received: number;
@@ -654,11 +769,25 @@ export interface components {
             field: string;
             message: string;
         };
+        AppMessageOpens: {
+            /** @description Hourly open counts for the first 48 hours after campaign creation, through the current hour. Empty if no opens were recorded. */
+            hours: {
+                /**
+                 * Format: date-time
+                 * @description The UTC hour, as an ISO instant.
+                 */
+                hour: string;
+                opened: number;
+            }[];
+        };
         MessageTrace: {
             /** Format: uuid */
             id: string;
-            /** @enum {string} */
-            status: "scheduled" | "sending" | "canceled" | "paused";
+            /**
+             * @description Campaign processing state. sent means all deliveries have terminal outcomes and no scheduled wave remains; it does not guarantee provider acceptance or display. Inspect outcomes and delivery error codes.
+             * @enum {string}
+             */
+            status: "scheduled" | "sending" | "sent" | "canceled" | "paused";
             /** @enum {string} */
             mode: "live" | "test";
             /** Format: date-time */
@@ -696,11 +825,36 @@ export interface components {
             paused_reason: string | null;
             /** @description Counts across all deliveries. The deliveries array contains only a sample. */
             outcomes: {
+                /** @description Deliveries with an SDK-reported open. */
+                opened: number;
                 sent: number;
                 failed: number;
                 /** @description Queued and in-flight deliveries whose final outcome is not yet recorded. */
                 pending: number;
                 total: number;
+            };
+            /** @description Outcomes per platform. Rows written before platform tracking are counted in outcomes only. */
+            platforms: {
+                /** @description Counts across all deliveries. The deliveries array contains only a sample. */
+                ios: {
+                    /** @description Deliveries with an SDK-reported open. */
+                    opened: number;
+                    sent: number;
+                    failed: number;
+                    /** @description Queued and in-flight deliveries whose final outcome is not yet recorded. */
+                    pending: number;
+                    total: number;
+                };
+                /** @description Counts across all deliveries. The deliveries array contains only a sample. */
+                android: {
+                    /** @description Deliveries with an SDK-reported open. */
+                    opened: number;
+                    sent: number;
+                    failed: number;
+                    /** @description Queued and in-flight deliveries whose final outcome is not yet recorded. */
+                    pending: number;
+                    total: number;
+                };
             };
             /** @description First 50 deliveries in creation order. Use counts for totals across the campaign. */
             deliveries: {
@@ -728,6 +882,12 @@ export interface components {
             canceled_count: number;
         };
         Message: {
+            audience: {
+                /** @enum {string} */
+                kind: "device_ids" | "external_ids" | "all" | "saved";
+                /** @description Number of submitted identifiers, not resolved devices. Null for all or saved audiences. */
+                size: number | null;
+            };
             /** Format: uuid */
             id: string;
             /** @enum {string} */
@@ -801,6 +961,9 @@ export interface components {
             /** @description Between 1 and 100 device ids, each at most once. */
             device_ids: string[];
         } | {
+            /** @description Between 1 and 2000 unique user identifiers. Every matching device is resolved by the worker; unknown identifiers are ignored. */
+            external_ids: string[];
+        } | {
             /**
              * @description All devices in this app and key mode. Opted-out or invalidated devices are recorded as failed deliveries.
              * @enum {boolean}
@@ -817,6 +980,21 @@ export interface components {
         MessagePayload: {
             title?: string;
             body?: string;
+            subtitle?: string;
+            /** @description HTTPS image URL, up to 2048 characters. */
+            image?: string;
+            /** @description Lifetime in seconds from the first attempt, preserved across retries. Defaults to 259200 (72 hours); 0 requests immediate delivery without provider storage. */
+            ttl?: number;
+            /** @enum {string} */
+            priority?: "high" | "normal";
+            collapse_id?: string;
+            thread_id?: string;
+            sound?: string;
+            badge?: number;
+            /** @description Raw FCM Android configuration merged over generated Android fields. Reserved tracking metadata remains protected. */
+            android?: {
+                [key: string]: unknown;
+            };
             data?: components["schemas"]["MessageData"];
             /** @description Localized text by language tag. Matches the device locale, then its language, then the base text. */
             localizations?: {
@@ -828,18 +1006,23 @@ export interface components {
             };
         };
         /**
-         * @description Custom scalar fields delivered with the notification. The carillon key is reserved and must not be included.
+         * @description Custom JSON fields delivered with the notification. Objects and arrays are preserved by supported SDKs. The carillon key is reserved and must not be included.
          * @example {
          *       "order_id": "42"
          *     }
          */
         MessageData: {
-            [key: string]: string | number | boolean | unknown;
+            [key: string]: string | number | boolean | unknown | unknown[] | {
+                [key: string]: unknown;
+            };
         };
         /** @description Overrides the supplied fields. Omitted fields keep the base text. */
         Localization: {
             title?: string;
             body?: string;
+            subtitle?: string;
+            /** @description HTTPS image URL, up to 2048 characters. */
+            image?: string;
         };
         HelloResponse: {
             message: string;
@@ -869,6 +1052,119 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    listAudiences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every saved audience of the app, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedAudienceList"];
+                };
+            };
+        };
+    };
+    createAudience: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedAudienceCreation"];
+            };
+        };
+        responses: {
+            /** @description Created audience. Use its id as audience_id when sending a message. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedAudience"];
+                };
+            };
+            /** @description An audience of this app already carries that name. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    deleteAudience: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appId: string;
+                audienceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audience deleted. Existing campaigns retain their copied filters. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No such audience in this app. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    previewAudience: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedAudiencePreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Current matching-device count. Does not save the definition. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedAudiencePreview"];
                 };
             };
         };
@@ -1001,119 +1297,6 @@ export interface operations {
             };
         };
     };
-    listAudiences: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                appId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Every saved audience of the app, newest first. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SavedAudienceList"];
-                };
-            };
-        };
-    };
-    createAudience: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                appId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SavedAudienceCreation"];
-            };
-        };
-        responses: {
-            /** @description Created audience. Use its id as audience_id when sending a message. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SavedAudience"];
-                };
-            };
-            /** @description An audience of this app already carries that name. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    deleteAudience: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                appId: string;
-                audienceId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Audience deleted. Existing campaigns retain their copied filters. */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No such audience in this app. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    previewAudience: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                appId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SavedAudiencePreviewRequest"];
-            };
-        };
-        responses: {
-            /** @description Current matching-device count. Does not save the definition. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SavedAudiencePreview"];
-                };
-            };
-        };
-    };
     listCredentials: {
         parameters: {
             query?: never;
@@ -1192,6 +1375,36 @@ export interface operations {
             };
         };
     };
+    exportDevices: {
+        parameters: {
+            query?: {
+                external_id?: string;
+                platform?: "ios" | "android";
+                status?: "reachable" | "opted_out" | "invalidated";
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Devices ordered by ID. Continue with next_cursor until null. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        devices: components["schemas"]["Device"][];
+                        /** Format: uuid */
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
     registerDevice: {
         parameters: {
             query?: never;
@@ -1214,8 +1427,287 @@ export interface operations {
                     "application/json": components["schemas"]["Device"];
                 };
             };
+            /** @description Invalid tags or merged tags exceed the limits. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The body is over 65536 bytes. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description A magic token was registered with a live key. */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    deleteDevicesByExternalId: {
+        parameters: {
+            query: {
+                external_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description How many rows went. Zero when no device carried the external_id. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DevicesDeleted"];
+                };
+            };
+            /** @description The key does not carry devices:delete. A mobile key never does. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    readDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The device in this app. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Device"];
+                };
+            };
+            /** @description No device with that ID in this app. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    deleteDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The device is gone, or never was in this app. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The key does not carry devices:delete. A mobile key never does. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    patchDeviceTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    tags: components["schemas"]["DeviceTags"];
+                };
+            };
+        };
+        responses: {
+            /** @description Device with merged tags. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Device"];
+                };
+            };
+            /** @description Invalid tags or merged tags exceed the limits. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A secret key with devices:write is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No device with this ID in the key’s app and mode. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    readUserTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                externalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The user tags in this app and key mode. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserTags"];
+                };
+            };
+            /** @description Requires users:read on a secret key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No user tags for this external ID. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    deleteUserTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                externalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profile deleted or already absent. Devices and their external IDs are unchanged. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Requires users:delete on a secret key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    patchUserTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                externalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    tags: components["schemas"]["DeviceTags"];
+                };
+            };
+        };
+        responses: {
+            /** @description The user tags in this app and key mode. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserTags"];
+                };
+            };
+            /** @description Invalid tags or merged tags exceed the limits. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Requires users:write on a secret key. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1270,6 +1762,37 @@ export interface operations {
                 };
             };
             /** @description No such import in this app. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getMessageOpens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Hourly opens within the first 48 hours after campaign creation. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppMessageOpens"];
+                };
+            };
+            /** @description No such campaign in this app. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -1385,6 +1908,15 @@ export interface operations {
                     "application/json": components["schemas"]["Message"];
                 };
             };
+            /** @description The organization billing grace period has expired. Resolve billing before starting new sends. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description The key may not send. A mobile key never can. */
             403: {
                 headers: {
@@ -1403,7 +1935,16 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description The payload would show nothing, claims the reserved `carillon` data key, a device or a saved audience is not in this app, `delivery_rate` is above the app ceiling, or this `Idempotency-Key` was used with a different body. */
+            /** @description The body is over 1048576 bytes. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The payload would show nothing, claims the reserved `carillon` data key, a `device_ids` entry or the `audience_id` is not in this app, `delivery_rate` is above the app ceiling, or this `Idempotency-Key` was used with a different body. `external_ids` and `all` never fail this way: identifiers matching no device are ignored. */
             422: {
                 headers: {
                     [name: string]: unknown;
